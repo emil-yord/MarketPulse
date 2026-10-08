@@ -72,13 +72,22 @@ def fetch_indicator(indicator_code, countries, start_year, end_year):
     return pd.DataFrame(rows)
 
 
-def main():
-    print(f"Fetching {len(INDICATORS)} indicators for {len(EU27)} EU countries "
-          f"({START_YEAR}-{END_YEAR})...")
+def fetch_all_indicators(verbose=True):
+    """Fetches every indicator in INDICATORS for every EU27 country and
+    returns one merged, tidy DataFrame (one row per country+year).
+
+    Separated from main() so the dashboard can call this directly on
+    startup (e.g. on Streamlit Cloud, where there's no separate step to
+    run fetch_data.py first) instead of only via the command line.
+    """
+    if verbose:
+        print(f"Fetching {len(INDICATORS)} indicators for {len(EU27)} EU countries "
+              f"({START_YEAR}-{END_YEAR})...")
 
     frames = []
     for code, col_name in INDICATORS.items():
-        print(f"  fetching {col_name} ({code})...")
+        if verbose:
+            print(f"  fetching {col_name} ({code})...")
         df = fetch_indicator(code, EU27, START_YEAR, END_YEAR)
         df = df.rename(columns={"value": col_name})
         df = df[["country_code", "country", "year", col_name]]
@@ -90,7 +99,11 @@ def main():
     for df in frames[1:]:
         merged = merged.merge(df, on=["country_code", "country", "year"], how="outer")
 
-    merged = merged.sort_values(["country", "year"]).reset_index(drop=True)
+    return merged.sort_values(["country", "year"]).reset_index(drop=True)
+
+
+def main():
+    merged = fetch_all_indicators()
 
     out_path = "data/processed/indicators.csv"
     merged.to_csv(out_path, index=False)

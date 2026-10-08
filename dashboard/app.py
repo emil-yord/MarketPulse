@@ -11,6 +11,7 @@ import sys
 import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "analysis"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "data"))
 
 import streamlit as st
 import pandas as pd
@@ -18,6 +19,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 import stats as mystats
+import fetch_data
 
 st.set_page_config(page_title="Market Pulse", page_icon="📊", layout="wide")
 
@@ -34,6 +36,17 @@ INDICATOR_LABELS = {
 HIGHLIGHT_COUNTRY = "Bulgaria"
 
 
+@st.cache_data(show_spinner=False)
+def fetch_live_data():
+    """Pulls real World Bank data at app startup. Used so a deployed demo
+    (e.g. on Streamlit Cloud, where no one has run fetch_data.py by hand)
+    still shows real data instead of only ever showing the synthetic
+    sample. Cached for the life of the app process - not re-fetched on
+    every page interaction.
+    """
+    return fetch_data.fetch_all_indicators(verbose=False)
+
+
 @st.cache_data
 def load_data():
     real_path = "data/processed/indicators.csv"
@@ -41,12 +54,25 @@ def load_data():
 
     if os.path.exists(real_path):
         return pd.read_csv(real_path), False
-    elif os.path.exists(sample_path):
+
+    # No cached real data on disk - try fetching it live before falling
+    # back to the synthetic sample. This is what makes a deployed public
+    # demo show real data without a manual setup step.
+    try:
+        with st.spinner("Fetching live data from the World Bank API (first load only)..."):
+            df = fetch_live_data()
+        if df is not None and len(df) > 0:
+            return df, False
+    except Exception as e:
+        print(f"Live fetch failed, falling back to sample data: {e}")
+
+    if os.path.exists(sample_path):
         return pd.read_csv(sample_path), True
     else:
         st.error(
-            "No data found. Run `python data/generate_sample_data.py` for a quick "
-            "preview, or `python data/fetch_data.py` for real World Bank data."
+            "No data found and the live World Bank fetch failed. Run "
+            "`python data/generate_sample_data.py` for a quick preview, or "
+            "`python data/fetch_data.py` for real data."
         )
         st.stop()
 
