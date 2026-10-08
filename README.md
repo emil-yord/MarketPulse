@@ -66,6 +66,12 @@ source venv/bin/activate   # venv\Scripts\activate on Windows
 pip install -r requirements.txt
 ```
 
+**The venv has to be active in every terminal you use for this project.**
+It's not a one-time setup step - it only applies to the terminal window
+you ran it in, and resets the moment you close that window. Opened a new
+terminal? Run `cd market-pulse` then the activate line again before
+anything else below.
+
 ### Option A — explore immediately with sample data
 
 ```bash
@@ -85,6 +91,9 @@ streamlit run dashboard/app.py        # automatically prefers real data if prese
 ```bash
 jupyter notebook notebooks/exploratory_analysis.ipynb
 ```
+
+(All three of the command blocks above assume the venv is already active
+in that terminal — see the note above.)
 
 Run all cells top to bottom. The last cell is intentionally left for you
 to fill in — the actual written conclusion from reading the real output,
